@@ -3,16 +3,22 @@
 <head>
     <meta charset="utf-8">
     <title>Import Excel into Database</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="mainWrapper">
+
+    <div>
         <form method="post" action="index1.php" enctype="multipart/form-data">
-            <br>
-            <input type="file" name="file"/>
-            <br>
-            <input type="submit" name="submit" value="submit"/>
+            <label for="fname">*Database Name</label>
+            <input type="text" name="dbname" id="dbname" required>
+        
+            <label for="lname">*Choose Your File </label>
+            <input type="file" name="file" id="file" required/>
+        
+            <input type="submit" name="submit" value="Submit">
         </form>
     </div>
+
 </body>
 </html>
 
