@@ -1,24 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <title>Import Excel into Database</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
     <div>
         <form method="post" action="index1.php" enctype="multipart/form-data">
             <label for="fname">*Database Name</label>
             <input type="text" name="dbname" id="dbname" required>
-        
+
+            <label for="fname">*Table Name</label>
+            <input type="text" name="tblname" id="tblname" required>
+
             <label for="lname">*Choose Your File </label>
-            <input type="file" name="file" id="file" required/>
-        
+            <input type="file" name="csvfile" id="file" required />
+
             <input type="submit" name="submit" value="Submit">
         </form>
     </div>
 
 </body>
-</html>
 
+</html>
