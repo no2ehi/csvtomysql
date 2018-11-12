@@ -1,6 +1,7 @@
 <?php 
 
-if( isset($_POST['submit']) && isset($_FILES["csvfile"]) ) {
+if( isset($_POST['submit']) && isset($_FILES["csvfile"]) ) 
+{
 
     $servername = "localhost";
     $username = "root";
@@ -18,7 +19,8 @@ if( isset($_POST['submit']) && isset($_FILES["csvfile"]) ) {
         echo     $e->getMessage();
     }
 
-    populateRows($source_file);
+    prettyVarDump(getCustomCSV($source_file),"10 rows");
+
     
 }
 
@@ -35,62 +37,80 @@ function CreateDatabaseTable($servername,$username,$password,$dbname,$tblname)
     $sql = "CREATE TABLE IF NOT EXISTS $tblname (
                 ID int(11) AUTO_INCREMENT PRIMARY KEY)";
     $conn->exec($sql);
-    echo "DB created successfully \n";
+    echo "DataBase Created Successfully \n";
 }
 
 
-function prettyVarDump($data){
-    echo "<pre>" ;
-    var_dump($data);
+// display Beatiful vardump function 
+function prettyVarDump($data, $title="", $background="#EEEEEE", $color="#000000")
+{
+        
+    echo "<pre style='background:$background; color:$color; padding:10px 20px; border:2px inset $color'>";
+    echo    "<h2>$title</h2>";
+            var_dump($data); 
     echo "</pre>";
 }
 
 
-function populateRows($source_file)
-{
-    $numberRow = 0;
-    $header_row = array();
 
-    if( $handle = fopen($source_file, "r") ){
-
-        while( $data = fgetcsv($handle, 10000, ",") ){
-
-            if ( $numberRow == 0 ) {
-                $data = cleanseHeaderRow($data);
-                foreach($data as $key => $value){
-                    $header_row[$key] = $value;
-                }
-                prettyVarDump($header_row);
-            } else {
-                echo 'else <br>';
-                
-                prettyVarDump($data);
-            }
-            $numberRow++;   
-        }
-
-    } else {
-        echo 'Err: can not open csv file.';
-    }
-    
-}
-
-
-
-// replace space to underline
+// replace space character to underline
 function cleanseHeaderRow($header_row)
 {
-    echo "cleans";
     $new_header_row = array();
-    foreach($header_row as $key => $a_row){
+    foreach($header_row as $key => $a_row)
+    {
         $new_header_row[$key] = strtolower(str_replace(" ", "_", preg_replace("/[^ \w]+/", "_", trim($a_row))));
     }
     return $new_header_row;
 }
 
 
-
-
+// get 10 Rows of csv file that is not empty
+function getCustomCSV($file, $lenght = 10, $skipEmptyLines = true) 
+{
+    $numberRow = 0; 
+    $output = array(); 
+        if (($handle = fopen($file, "r")) !== FALSE)  
+        { 
+            while (($data = fgetcsv($handle, 10000, ",")) !== FALSE)  
+            {
+                if($numberRow == 0)
+                {
+                    $data = cleanseHeaderRow($data);
+                    foreach($data as $key => $value){
+                        $header_row[$key] = $value;
+                    }
+                    prettyVarDump($header_row,"Cleans Header Row"); 
+                }
+                else
+                {
+                    if($lenght) 
+                    { 
+                        $chk = true; 
+                        foreach($data AS $row) 
+                        { 
+                            if(empty($row) && $skipEmptyLines == true) 
+                            {
+                                $chk = false; 
+                            }
+                        } 
+                        if($chk) 
+                        { 
+                            $output[] = $data; 
+                            $lenght--; 
+                        } 
+                    } 
+                    else
+                    {
+                        break; 
+                    }
+                }
+                $numberRow++;
+            } 
+            fclose($handle); 
+        } 
+    return $output; 
+}
 
 
 ?>
