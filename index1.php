@@ -121,6 +121,8 @@ function analysisDataTypes($get10rows)
             }
         }
     }
+
+    // Sort data type
     $chk = true;
     $DT = array();
     for ($col = 0; $col < $NumberofCol; $col++) {
