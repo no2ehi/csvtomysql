@@ -38,6 +38,7 @@ function CreateDatabaseTable($getTenRow, $servername, $username, $password, $dbn
     //create table
    // $dataTypes = array();
    // $headerRow = array();
+   
     $size = 220;
     $csv_columns = array();
     $creat_string = array();
