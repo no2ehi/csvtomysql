@@ -3,7 +3,7 @@
 if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
     $servername = "localhost";
     $username = "root";
-    $password = "1";
+    $password = "admin";
     $source_file = $_FILES["csvfile"]["name"];
     $dbname = $_POST['dbname'];
     $tblname = $_POST['tblname'];
@@ -15,13 +15,14 @@ if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
         echo     $e->getMessage();
     }
 
-     prettyVarDump(getCustomCSV($source_file), "10 rows");
+    // prettyVarDump(getCustomCSV($source_file), "10 rows");
     
-     // prettyVarDump($get10rows, "Data Type");
+    // prettyVarDump($get10rows, "Data Type");
 
     $get10rows = getCustomCSV($source_file);
 
-    prettyVarDump(analysisDataTypes($get10rows), "Data Type");
+
+    prettyVarDump(analysisDataTypes($get10rows));
 }
 
 
@@ -104,44 +105,24 @@ function getCustomCSV($file, $lenght = 10, $skipEmptyLines = true)
 function analysisDataTypes($get10rows)
 {
     $dataTypes = array();
+
     foreach ($get10rows as $key => $value) {
-        $NumberofCol = 0;
         foreach ($value as $cell) {
-            $NumberofCol++;
             if (is_numeric($cell)) {
                 if (detectTinyIntType((int)$cell)) {
                     $dataTypes[$key][] = "TINYINT";
                 } else {
                     $dataTypes[$key][] = "INT";
                 }
-            } else if (detectDateTimeType($cell)) {
+            } elseif (detectDateTimeType($cell)) {
                 $dataTypes[$key][] = "DATETIME";
             } else {
                 $dataTypes[$key][] = "VARCHAR";
             }
         }
     }
-    $chk = true;
-    $DT = array();
-    for ($col = 0; $col < $NumberofCol; $col++) {
-            for ($row = 1; $row <= 9; $row++) {
-                if($dataTypes[0][$col] == $dataTypes[$row][$col]){
-                    $DT[$col] = $dataTypes[0][$col];
-                }
-                else {
-                    $chk = false;
-                }
-        }
-    }
-    if($chk){
-        return $DT;
-    }
-    else {
-         echo "<pre"."Error : The data type of your CSV file column is not the same!"."</pre>";
-    }
 
-
-
+    return $dataTypes;
 }
 
 
@@ -151,7 +132,7 @@ function detectDateTimeType($val)
 {
     if (preg_match('/(.*)([0-9]{2}\/[0-9]{2}\/[0-9]{2,4})(.*)/', $val)) {
         return 1;
-    } else if (preg_match('/(.*)([0-9]{2}\-[0-9]{2}\-[0-9]{2,4})(.*)/', $val)) {
+    } elseif (preg_match('/(.*)([0-9]{2}\-[0-9]{2}\-[0-9]{2,4})(.*)/', $val)) {
         return 1;
     } else {
         return 0;
