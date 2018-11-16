@@ -14,7 +14,7 @@ if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
 
     $dataTypes = analysisDataTypes($get10rows);
 
-    $csvColumns = createCsvColumns($headerRow,$dataTypes);
+    $csvColumns = createCsvColumns($headerRow, $dataTypes);
 
 
     // prettyVarDump($get10rows,"get 10 row");
@@ -23,10 +23,10 @@ if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
 
     try {
         CreateDatabaseTable($csvColumns, $servername, $username, $password, $dbname, $tblname);
+        insertDataRow($source_file, $headerRow, $servername, $username, $password, $dbname, $tblname);
     } catch (PDOException $e) {
         echo     $e->getMessage();
     }
-
 }
 
 
@@ -46,26 +46,24 @@ function CreateDatabaseTable($csvColumns, $servername, $username, $password, $db
                 )";
     $conn->exec($sql);
     echo "DataBase Created Successfully \n";
+    $conn = null;
 }
 
 
-// Merg header name & data type $ size column to one string 
-function createCsvColumns($headerRow,$dataTypes)
+// Merg header name & data type $ size column to one string
+function createCsvColumns($headerRow, $dataTypes)
 {
     $csvColumns = array();
     $sizeColumn = 0;
 
-    for ($i = 0 ; $i < sizeof($headerRow) ; $i++)
-    {
-        if($dataTypes[$i] == 'INT'){
+    for ($i = 0 ; $i < sizeof($headerRow) ; $i++) {
+        if ($dataTypes[$i] == 'INT') {
             $sizeColumn = 20;
-        } elseif($dataTypes[$i] == 'TINYINT'){
+        } elseif ($dataTypes[$i] == 'TINYINT') {
             $sizeColumn = 1;
-        }
-        elseif($dataTypes[$i] == 'VARCHAR'){
+        } elseif ($dataTypes[$i] == 'VARCHAR') {
             $sizeColumn = 255;
-        }
-        elseif($dataTypes[$i] == 'DATETIME'){
+        } elseif ($dataTypes[$i] == 'DATETIME') {
             $sizeColumn = 6;
         }
         $csvColumns[] = "$headerRow[$i] " . strtoupper($dataTypes[$i]) . "({$sizeColumn})";
@@ -76,13 +74,39 @@ function createCsvColumns($headerRow,$dataTypes)
 }
 
 
-// display Beatiful vardump function
-function prettyVarDump($data, $title="", $background="#EEEEEE", $color="#000000")
+// insert Data Row line by line in database
+function insertDataRow($file, $headerRow, $servername, $username, $password, $dbname, $tblname)
 {
-    echo "<pre style='background:$background; color:$color; padding:10px 20px; border:2px inset $color'>";
-    echo    "<h2>$title</h2>";
-    var_dump($data);
-    echo "</pre>";
+    $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+    // set the PDO error mode to exception
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    $headerRow = join(', ', $headerRow);
+
+    if (($handle = fopen($file, "r")) !== false) {
+        while (($data = fgetcsv($handle, 10000, ",")) !== false) {
+            if ($numberRow == 0) {
+                // continue;
+            } else {
+                foreach ($data as $key => $value) {
+                    if (empty($value)) {
+                        $value = 'NULL';
+                    }
+                }
+                
+                $data = "'". join("','", $data) ."'";
+
+                // echo "<br> $data <br>";
+                $sql = "INSERT INTO {$tblname} ({$headerRow})
+                VALUES ($data)";
+                $conn->exec($sql);
+                echo "New record created successfully";
+            }
+            $numberRow++;
+        }
+        fclose($handle);
+    }
+    $conn = null;
 }
 
 
@@ -171,7 +195,7 @@ function analysisDataTypes($get10rows)
                     $dataTypes[$key][] = "INT";
                 }
             } elseif (detectDateTimeType($cell)) {
-                $dataTypes[$key][] = "DATETIME";
+                $dataTypes[$key][] = "VARCHAR";
             } else {
                 $dataTypes[$key][] = "VARCHAR";
             }
@@ -217,4 +241,15 @@ function detectDateTimeType($val)
 function detectTinyIntType($val)
 {
     return (strlen($val) == 1 && ($val == 0 || $val == 1)) ? 1 : 0;
+}
+
+
+
+// display Beatiful vardump function
+function prettyVarDump($data, $title="", $background="#EEEEEE", $color="#000000")
+{
+    echo "<pre style='background:$background; color:$color; padding:10px 20px; border:2px inset $color'>";
+    echo    "<h2>$title</h2>";
+    var_dump($data);
+    echo "</pre>";
 }
