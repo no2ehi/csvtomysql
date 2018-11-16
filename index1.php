@@ -8,25 +8,30 @@ if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
     $dbname = $_POST['dbname'];
     $tblname = $_POST['tblname'];
 
+    $headerRow = getHeaderRow($source_file);
+
     $get10rows = getCustomCSV($source_file);
 
+    $dataTypes = analysisDataTypes($get10rows);
+
+    $csvColumns = createCsvColumns($headerRow,$dataTypes);
+
+
+    // prettyVarDump($get10rows,"get 10 row");
+    // prettyVarDump($headerRow, "header row");
+    // prettyVarDump($dataTypes, "data types");
 
     try {
-        CreateDatabaseTable($get10rows, $servername, $username, $password, $dbname, $tblname);
+        CreateDatabaseTable($csvColumns, $servername, $username, $password, $dbname, $tblname);
     } catch (PDOException $e) {
         echo     $e->getMessage();
     }
 
-
-    //test
-    prettyVarDump(getCustomCSV($source_file), "10 rows");
-    // prettyVarDump($get10rows, "Data Type");
-    prettyVarDump(analysisDataTypes($get10rows), "Data Type");
 }
 
 
 // create database and table
-function CreateDatabaseTable($getTenRow, $servername, $username, $password, $dbname, $tblname)
+function CreateDatabaseTable($csvColumns, $servername, $username, $password, $dbname, $tblname)
 {
     // create database
     $conn = new PDO("mysql:host=$servername", $username, $password);
@@ -35,27 +40,39 @@ function CreateDatabaseTable($getTenRow, $servername, $username, $password, $dbn
     $conn->exec($sql);
     $sql = "use $dbname";
     $conn->exec($sql);
-    //create table
-    // $dataTypes = array();
-    // $headerRow = array();
-   
-    $size = 220;
-    $csv_columns = array();
-    $creat_string = array();
-    $csv_columns[] = getHeaderRow();
-    $csv_columns[] = analysisDataTypes($getTenRow);
-    prettyVarDump($csv_columns, "Cleans Header Rowssssssssss");
-    foreach ($csv_columns as $value) {
-        $create_string[] = $value['name'] . $value['type'] . "$size";
-    }
-    prettyVarDump($create_string, "Cleans Header Row");
-    $new_string = join(', ', $create_string);
     $sql = "CREATE TABLE IF NOT EXISTS $tblname (
                 ID int(11) AUTO_INCREMENT PRIMARY KEY,
-                $new_string
+                $csvColumns
                 )";
     $conn->exec($sql);
     echo "DataBase Created Successfully \n";
+}
+
+
+// Merg header name & data type $ size column to one string 
+function createCsvColumns($headerRow,$dataTypes)
+{
+    $csvColumns = array();
+    $sizeColumn = 0;
+
+    for ($i = 0 ; $i < sizeof($headerRow) ; $i++)
+    {
+        if($dataTypes[$i] == 'INT'){
+            $sizeColumn = 20;
+        } elseif($dataTypes[$i] == 'TINYINT'){
+            $sizeColumn = 1;
+        }
+        elseif($dataTypes[$i] == 'VARCHAR'){
+            $sizeColumn = 255;
+        }
+        elseif($dataTypes[$i] == 'DATETIME'){
+            $sizeColumn = 6;
+        }
+        $csvColumns[] = "$headerRow[$i] " . strtoupper($dataTypes[$i]) . "({$sizeColumn})";
+    }
+    $csvColumns = join(', ', $csvColumns);
+
+    return $csvColumns;
 }
 
 
@@ -69,7 +86,6 @@ function prettyVarDump($data, $title="", $background="#EEEEEE", $color="#000000"
 }
 
 
-
 // replace space character to underline
 function cleanseHeaderRow($header_row)
 {
@@ -77,20 +93,30 @@ function cleanseHeaderRow($header_row)
     foreach ($header_row as $key => $a_row) {
         $new_header_row[$key] = strtolower(str_replace(" ", "_", preg_replace("/[^ \w]+/", "_", trim($a_row))));
     }
-    // prettyVarDump($new_header_row, "Cleans Header Row");
     return $new_header_row;
 }
 
 
-
-
 // get Header Row
-function getHeaderRow()
+function getHeaderRow($file)
 {
-    
-   #test
-    $test = array("name", "lastname", "age", "aaa", "test", "var", "ali");
-    return $test;
+    $numberRow = 0;
+    $header_row = array();
+
+    if (($handle = fopen($file, "r")) !== false) {
+        while (($data = fgetcsv($handle, 10000, ",")) !== false) {
+            if ($numberRow == 0) {
+                $data = cleanseHeaderRow($data);
+                foreach ($data as $key => $value) {
+                    $header_row[$key] = $value;
+                }
+            } else {
+                break;
+            }
+            $numberRow++;
+        }
+    }
+    return $header_row;
 }
 
 
@@ -101,14 +127,11 @@ function getCustomCSV($file, $lenght = 10, $skipEmptyLines = true)
 {
     $numberRow = 0;
     $output = array();
+
     if (($handle = fopen($file, "r")) !== false) {
         while (($data = fgetcsv($handle, 10000, ",")) !== false) {
             if ($numberRow == 0) {
-                $data = cleanseHeaderRow($data);
-                foreach ($data as $key => $value) {
-                    $header_row[$key] = $value;
-                }
-                // prettyVarDump($header_row, "Cleans Header Row");
+                // continue;
             } else {
                 if ($lenght) {
                     $chk = true;
@@ -137,8 +160,9 @@ function getCustomCSV($file, $lenght = 10, $skipEmptyLines = true)
 function analysisDataTypes($get10rows)
 {
     $dataTypes = array();
-
+    $NumberofCol = 0 ;
     foreach ($get10rows as $key => $value) {
+        $NumberofCol = sizeof($value);
         foreach ($value as $cell) {
             if (is_numeric($cell)) {
                 if (detectTinyIntType((int)$cell)) {
@@ -154,7 +178,7 @@ function analysisDataTypes($get10rows)
         }
     }
 
-    // Sort data type
+    // Sort & Compare Data Types
     $chk = true;
     $DT = array();
     for ($col = 0; $col < $NumberofCol; $col++) {
@@ -172,11 +196,8 @@ function analysisDataTypes($get10rows)
         echo "<pre"."Error : The data type of your CSV file column is not the same!"."</pre>";
     }
 
-
-
     return $dataTypes;
 }
-
 
 
 // just detect date time type
@@ -190,6 +211,7 @@ function detectDateTimeType($val)
         return 0;
     }
 }
+
 
 // detect boolean (TINYINT) type
 function detectTinyIntType($val)
