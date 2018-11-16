@@ -3,7 +3,7 @@
 if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
     $servername = "localhost";
     $username = "root";
-    $password = "admin";
+    $password = "1";
     $source_file = $_FILES["csvfile"]["name"];
     $dbname = $_POST['dbname'];
     $tblname = $_POST['tblname'];
