@@ -3,7 +3,7 @@
 if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
     $servername = "localhost";
     $username = "root";
-    $password = "admin";
+    $password = "1";
     $source_file = $_FILES["csvfile"]["name"];
     $dbname = $_POST['dbname'];
     $tblname = $_POST['tblname'];
@@ -92,6 +92,12 @@ function insertDataRow($file, $headerRow, $servername, $username, $password, $db
                     if (empty($value)) {
                         $value = 'NULL';
                     }
+                    if (detectDateTimeType($value) ){
+                        $start = date('m/d/Y H:i:s', $value);
+                        $start->format('m/d/Y H:i:s');
+                    }
+                    // prettyVarDump($value);
+
                 }
                 
                 $data = "'". join("','", $data) ."'";
@@ -100,7 +106,7 @@ function insertDataRow($file, $headerRow, $servername, $username, $password, $db
                 $sql = "INSERT INTO {$tblname} ({$headerRow})
                 VALUES ($data)";
                 $conn->exec($sql);
-                echo "New record created successfully";
+                // echo "New record created successfully";
             }
             $numberRow++;
         }
@@ -195,7 +201,7 @@ function analysisDataTypes($get10rows)
                     $dataTypes[$key][] = "INT";
                 }
             } elseif (detectDateTimeType($cell)) {
-                $dataTypes[$key][] = "VARCHAR";
+                $dataTypes[$key][] = "DATETIME";
             } else {
                 $dataTypes[$key][] = "VARCHAR";
             }
