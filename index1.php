@@ -3,7 +3,7 @@
 if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
     $servername = "localhost";
     $username = "root";
-    $password = "1";
+    $password = "admin";
     $source_file = $_FILES["csvfile"]["name"];
     $dbname = $_POST['dbname'];
     $tblname = $_POST['tblname'];
@@ -78,7 +78,6 @@ function createCsvColumns($headerRow, $dataTypes)
 function insertDataRow($file, $headerRow, $servername, $username, $password, $dbname, $tblname)
 {
     $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
-    // set the PDO error mode to exception
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     $headerRow = join(', ', $headerRow);
@@ -92,17 +91,24 @@ function insertDataRow($file, $headerRow, $servername, $username, $password, $db
                     if (empty($value)) {
                         $value = 'NULL';
                     }
-                    if (detectDateTimeType($value) ){
-                        $start = date('m/d/Y H:i:s', $value);
-                        $start->format('m/d/Y H:i:s');
-                    }
-                    // prettyVarDump($value);
+                    if (detectDateTimeType($value)) {
+                        // $value = date('m/d/Y H:i:s', $value);
+                        // $value->format('m/d/Y H:i:s');
 
+                        // $testtt = DateTime::createFromFormat('Y/m/d H:i', $value);
+
+                        // $value = date_create_from_format('d/m/Y H:i', $value);
+                        // $value->getTimestamp();
+
+                        // $date = DateTime::createFromFormat(m/d/Y H:i', $value);
+                        // $value = $date->format('m/d/Y H:i');
+                        
+                        // prettyVarDump($value, "datetime");
+                    }
                 }
                 
                 $data = "'". join("','", $data) ."'";
 
-                // echo "<br> $data <br>";
                 $sql = "INSERT INTO {$tblname} ({$headerRow})
                 VALUES ($data)";
                 $conn->exec($sql);
