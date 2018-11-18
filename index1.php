@@ -23,7 +23,8 @@ if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
 
     try {
         CreateDatabaseTable($csvColumns, $servername, $username, $password, $dbname, $tblname);
-        insertDataRow($source_file, $headerRow, $servername, $username, $password, $dbname, $tblname);
+        // insertDataRow($source_file, $headerRow, $servername, $username, $password, $dbname, $tblname);
+        loadCsvToMysql($source_file, $servername, $username, $password, $dbname, $tblname);
     } catch (PDOException $e) {
         echo     $e->getMessage();
     }
@@ -71,6 +72,34 @@ function createCsvColumns($headerRow, $dataTypes)
     $csvColumns = join(', ', $csvColumns);
 
     return $csvColumns;
+}
+
+
+
+function loadCsvToMysql($file, $servername, $username, $password, $dbname, $tblname){
+    $cons= mysqli_connect("$servername", "$username","$password","$dbname") or die(mysql_error());
+
+    $result1=mysqli_query($cons,"select count(*) count from $tblname");
+    $r1=mysqli_fetch_array($result1);
+    $count1=(int)$r1['count'];
+
+    mysqli_query($cons, '
+        LOAD DATA LOCAL INFILE "'.$file.'"
+            INTO TABLE '.$tblname.'
+            FIELDS TERMINATED by \',\'
+            LINES TERMINATED BY \'\n\'
+            IGNORE 1 ROWS
+    ')or die(mysql_error());
+    
+    $result2=mysqli_query($cons,"select count(*) count from $tblname");
+    $r2=mysqli_fetch_array($result2);
+    $count2=(int)$r2['count'];
+    
+    $count=$count2-$count1;
+    if($count>0)
+    echo "<br>Success";
+    echo "<b> total $count records have been added to the table $tblname </b> ";
+    
 }
 
 
