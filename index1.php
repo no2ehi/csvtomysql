@@ -17,14 +17,18 @@ if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
     $csvColumns = createCsvColumns($headerRow, $dataTypes);
 
 
-    // prettyVarDump($get10rows,"get 10 row");
-    // prettyVarDump($headerRow, "header row");
-    // prettyVarDump($dataTypes, "data types");
+    $columnsDataTime = array();
+    foreach ($dataTypes as $key => $value) {
+        if( $value == "DATETIME"){
+            $columnsDataTime[] = $key;
+        }
+    }
+
 
     try {
         CreateDatabaseTable($csvColumns, $servername, $username, $password, $dbname, $tblname);
         // insertDataRow($source_file, $headerRow, $servername, $username, $password, $dbname, $tblname);
-        loadCsvToMysql($source_file, $servername, $username, $password, $dbname, $tblname);
+        loadCsvToMysql($source_file, $headerRow, $columnsDataTime, $servername, $username, $password, $dbname, $tblname);
     } catch (PDOException $e) {
         echo     $e->getMessage();
     }
@@ -75,26 +79,33 @@ function createCsvColumns($headerRow, $dataTypes)
 }
 
 
-
-function loadCsvToMysql($file, $servername, $username, $password, $dbname, $tblname){
+function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $username, $password, $dbname, $tblname){
     $cons= mysqli_connect("$servername", "$username","$password","$dbname") or die(mysql_error());
 
     $result1=mysqli_query($cons,"select count(*) count from $tblname");
     $r1=mysqli_fetch_array($result1);
     $count1=(int)$r1['count'];
 
-    mysqli_query($cons, '
-        LOAD DATA LOCAL INFILE "'.$file.'"
-            INTO TABLE '.$tblname.'
-            FIELDS TERMINATED by \',\'
-            LINES TERMINATED BY \'\n\'
-            IGNORE 1 ROWS
-    ')or die(mysql_error());
+    $setString = createSetString($headerRow, $columnsDataTime);
+
+    $headerRow = join(', ', $headerRow);
+
+    $q = ' LOAD DATA LOCAL INFILE "'.$file.'"
+    INTO TABLE '.$tblname.'
+    FIELDS TERMINATED by \',\'
+    LINES TERMINATED BY \'\n\'
+    IGNORE 1 ROWS
+    (' .$headerRow. ')
+    ;' ;
+
+    // echo $q;
+
+    mysqli_query($cons, $q)or die(mysql_error());
     
     $result2=mysqli_query($cons,"select count(*) count from $tblname");
     $r2=mysqli_fetch_array($result2);
     $count2=(int)$r2['count'];
-    
+
     $count=$count2-$count1;
     if($count>0)
     echo "<br>Success";
@@ -103,52 +114,80 @@ function loadCsvToMysql($file, $servername, $username, $password, $dbname, $tbln
 }
 
 
-// insert Data Row line by line in database
-function insertDataRow($file, $headerRow, $servername, $username, $password, $dbname, $tblname)
-{
-    $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-    $headerRow = join(', ', $headerRow);
-
-    if (($handle = fopen($file, "r")) !== false) {
-        while (($data = fgetcsv($handle, 10000, ",")) !== false) {
-            if ($numberRow == 0) {
-                // continue;
-            } else {
-                foreach ($data as $key => $value) {
-                    if (empty($value)) {
-                        $value = 'NULL';
-                    }
-                    if (detectDateTimeType($value)) {
-                        // $value = date('m/d/Y H:i:s', $value);
-                        // $value->format('m/d/Y H:i:s');
-
-                        // $testtt = DateTime::createFromFormat('Y/m/d H:i', $value);
-
-                        // $value = date_create_from_format('d/m/Y H:i', $value);
-                        // $value->getTimestamp();
-
-                        // $date = DateTime::createFromFormat(m/d/Y H:i', $value);
-                        // $value = $date->format('m/d/Y H:i');
-                        
-                        // prettyVarDump($value, "datetime");
-                    }
+// create string for set query | STR_TO_DATE
+function createSetString($headerRow, $columnsDataTime){
+    $setString = '';
+    $i = 0;
+    $chk = false;
+    foreach ($headerRow as $key => $value) {
+        foreach ($columnsDataTime as $k) {
+            if($key == $k){
+                $chk = true;
+                if( $i > 0){
+                    $setString .= ', ';
                 }
-                
-                $data = "'". join("','", $data) ."'";
-
-                $sql = "INSERT INTO {$tblname} ({$headerRow})
-                VALUES ($data)";
-                $conn->exec($sql);
-                // echo "New record created successfully";
+                $headerRow[$key] = '@'.$value;
+                $setString .= $headerRow[$key] . ' = STR_TO_DATE(' . $headerRow[$key] . ', "%m/%d/%Y %h:%i:%s")';
+                $i++;
             }
-            $numberRow++;
         }
-        fclose($handle);
     }
-    $conn = null;
+    $allSetString = '';
+    if($chk){
+        $allSetString = 'SET ' . $setString;
+    }
+    
+    return $allSetString;
 }
+
+
+
+// insert Data Row line by line in database
+// function insertDataRow($file, $headerRow, $servername, $username, $password, $dbname, $tblname)
+// {
+//     $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
+//     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+//     $headerRow = join(', ', $headerRow);
+
+//     if (($handle = fopen($file, "r")) !== false) {
+//         while (($data = fgetcsv($handle, 10000, ",")) !== false) {
+//             if ($numberRow == 0) {
+//                 // continue;
+//             } else {
+//                 foreach ($data as $key => $value) {
+//                     if (empty($value)) {
+//                         $value = 'NULL';
+//                     }
+//                     if (detectDateTimeType($value)) {
+//                         // $value = date('m/d/Y H:i:s', $value);
+//                         // $value->format('m/d/Y H:i:s');
+
+//                         // $testtt = DateTime::createFromFormat('Y/m/d H:i', $value);
+
+//                         // $value = date_create_from_format('d/m/Y H:i', $value);
+//                         // $value->getTimestamp();
+
+//                         // $date = DateTime::createFromFormat(m/d/Y H:i', $value);
+//                         // $value = $date->format('m/d/Y H:i');
+                        
+//                         // prettyVarDump($value, "datetime");
+//                     }
+//                 }
+                
+//                 $data = "'". join("','", $data) ."'";
+
+//                 $sql = "INSERT INTO {$tblname} ({$headerRow})
+//                 VALUES ($data)";
+//                 $conn->exec($sql);
+//                 // echo "New record created successfully";
+//             }
+//             $numberRow++;
+//         }
+//         fclose($handle);
+//     }
+//     $conn = null;
+// }
 
 
 // replace space character to underline
