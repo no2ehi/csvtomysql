@@ -79,6 +79,7 @@ function createCsvColumns($headerRow, $dataTypes)
 }
 
 
+// Load csv to mysql by one query
 function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $username, $password, $dbname, $tblname){
     $cons= mysqli_connect("$servername", "$username","$password","$dbname") or die(mysql_error());
 
@@ -222,8 +223,6 @@ function getHeaderRow($file)
     }
     return $header_row;
 }
-
-
 
 
 // get 10 Rows of csv file that is not empty
