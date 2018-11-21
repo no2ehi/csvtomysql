@@ -88,7 +88,7 @@ function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $usern
     $count1=(int)$r1['count'];
 
     $setString = createSetString($headerRow, $columnsDataTime);
-
+    echo $setString;
     $headerRow = join(', ', $headerRow);
 
     $q = ' LOAD DATA LOCAL INFILE "'.$file.'"
@@ -96,8 +96,8 @@ function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $usern
     FIELDS TERMINATED by \',\'
     LINES TERMINATED BY \'\n\'
     IGNORE 1 ROWS
-    (' .$headerRow. ')
-    ;' ;
+    (' .$headerRow. ') 
+    ' .$setString. ';';
 
     // echo $q;
 
@@ -128,7 +128,7 @@ function createSetString($headerRow, $columnsDataTime){
                     $setString .= ', ';
                 }
                 $headerRow[$key] = '@'.$value;
-                $setString .= $headerRow[$key] . ' = STR_TO_DATE(' . $headerRow[$key] . ', "%m/%d/%Y %h:%i:%s")';
+                $setString .= $value . ' = STR_TO_DATE(' . $headerRow[$key] . ', "%m/%d/%Y %h:%i:%s")';
                 $i++;
             }
         }
