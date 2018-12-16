@@ -5,8 +5,12 @@ if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
     $username = "root";
     $password = "admin";
     $source_file = $_FILES["csvfile"]["name"];
+    $source_file2 = $_FILES["csvfile2"]["name"];
     $dbname = $_POST['dbname'];
-    $tblname = $_POST['tblname'];
+
+    $name_file = str_replace(".csv","", $source_file);
+    $name_file2 = str_replace(".csv","", $source_file2);
+
 
     $headerRow = getHeaderRow($source_file);
 
@@ -26,9 +30,9 @@ if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
 
 
     try {
-        CreateDatabaseTable($csvColumns, $servername, $username, $password, $dbname, $tblname);
-        // insertDataRow($source_file, $headerRow, $servername, $username, $password, $dbname, $tblname);
-        loadCsvToMysql($source_file, $headerRow, $columnsDataTime, $servername, $username, $password, $dbname, $tblname);
+        CreateDatabaseTable($csvColumns, $servername, $username, $password, $dbname, $name_file);
+        // insertDataRow($source_file, $headerRow, $servername, $username, $password, $dbname, $name_file);
+        loadCsvToMysql($source_file, $headerRow, $columnsDataTime, $servername, $username, $password, $dbname, $name_file);
     } catch (PDOException $e) {
         echo     $e->getMessage();
     }
@@ -36,7 +40,7 @@ if (isset($_POST['submit']) && isset($_FILES["csvfile"])) {
 
 
 // create database and table
-function CreateDatabaseTable($csvColumns, $servername, $username, $password, $dbname, $tblname)
+function CreateDatabaseTable($csvColumns, $servername, $username, $password, $dbname, $name_file)
 {
     // create database
     $conn = new PDO("mysql:host=$servername", $username, $password);
@@ -45,7 +49,7 @@ function CreateDatabaseTable($csvColumns, $servername, $username, $password, $db
     $conn->exec($sql);
     $sql = "use $dbname";
     $conn->exec($sql);
-    $sql = "CREATE TABLE IF NOT EXISTS $tblname (
+    $sql = "CREATE TABLE IF NOT EXISTS $name_file (
                 ID int(11) AUTO_INCREMENT PRIMARY KEY,
                 $csvColumns
                 )";
@@ -80,10 +84,10 @@ function createCsvColumns($headerRow, $dataTypes)
 
 
 // Load csv to mysql by one query
-function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $username, $password, $dbname, $tblname){
+function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $username, $password, $dbname, $name_file){
     $cons= mysqli_connect("$servername", "$username","$password","$dbname") or die(mysql_error());
 
-    $result1=mysqli_query($cons,"select count(*) count from $tblname");
+    $result1=mysqli_query($cons,"select count(*) count from $name_file");
     $r1=mysqli_fetch_array($result1);
     $count1=(int)$r1['count'];
 
@@ -94,7 +98,7 @@ function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $usern
     echo $atHeaderRow;
     
     $q = ' LOAD DATA LOCAL INFILE "'.$file.'"
-    INTO TABLE '.$tblname.'
+    INTO TABLE '.$name_file.'
     FIELDS TERMINATED by \',\'
     LINES TERMINATED BY \'\n\'
     IGNORE 1 ROWS
@@ -105,14 +109,14 @@ function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $usern
 
     mysqli_query($cons, $q)or die(mysql_error());
     
-    $result2=mysqli_query($cons,"select count(*) count from $tblname");
+    $result2=mysqli_query($cons,"select count(*) count from $name_file");
     $r2=mysqli_fetch_array($result2);
     $count2=(int)$r2['count'];
 
     $count=$count2-$count1;
     if($count>0)
     echo "<br>Success";
-    echo "<b> total $count records have been added to the table $tblname </b> ";
+    echo "<b> total $count records have been added to the table $name_file </b> ";
     
 }
 
@@ -161,7 +165,7 @@ function createSetString($headerRow, $columnsDataTime){
 
 
 // insert Data Row line by line in database
-// function insertDataRow($file, $headerRow, $servername, $username, $password, $dbname, $tblname)
+// function insertDataRow($file, $headerRow, $servername, $username, $password, $dbname, $name_file)
 // {
 //     $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
 //     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -195,7 +199,7 @@ function createSetString($headerRow, $columnsDataTime){
                 
 //                 $data = "'". join("','", $data) ."'";
 
-//                 $sql = "INSERT INTO {$tblname} ({$headerRow})
+//                 $sql = "INSERT INTO {$name_file} ({$headerRow})
 //                 VALUES ($data)";
 //                 $conn->exec($sql);
 //                 // echo "New record created successfully";
