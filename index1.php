@@ -87,17 +87,19 @@ function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $usern
     $r1=mysqli_fetch_array($result1);
     $count1=(int)$r1['count'];
 
+    $atHeaderRow = createHeaderString($headerRow, $columnsDataTime);
     $setString = createSetString($headerRow, $columnsDataTime);
-    echo $setString;
-    $headerRow = join(', ', $headerRow);
-
+    // echo $setString;
+    $atHeaderRow = join(', ', $atHeaderRow);
+    echo $atHeaderRow;
+    
     $q = ' LOAD DATA LOCAL INFILE "'.$file.'"
     INTO TABLE '.$tblname.'
     FIELDS TERMINATED by \',\'
     LINES TERMINATED BY \'\n\'
     IGNORE 1 ROWS
-    (' .$headerRow. ') 
-    ' .$setString. ';';
+    (' .$atHeaderRow. ') 
+    '.$setString.';';
 
     // echo $q;
 
@@ -115,6 +117,22 @@ function loadCsvToMysql($file, $headerRow, $columnsDataTime, $servername, $usern
 }
 
 
+// create string for @ header
+function createHeaderString($headerRow, $columnsDataTime){
+
+    foreach ($headerRow as $key => $value) {
+        foreach ($columnsDataTime as $k) {
+            if($key == $k){
+                $headerRow[$key] = '@'.$value;
+            }
+        }
+    }
+
+    return $headerRow;
+
+}
+
+
 // create string for set query | STR_TO_DATE
 function createSetString($headerRow, $columnsDataTime){
     $setString = '';
@@ -127,8 +145,7 @@ function createSetString($headerRow, $columnsDataTime){
                 if( $i > 0){
                     $setString .= ', ';
                 }
-                $headerRow[$key] = '@'.$value;
-                $setString .= $value . ' = STR_TO_DATE(' . $headerRow[$key] . ', "%m/%d/%Y %h:%i:%s")';
+                $setString .= $value . ' = STR_TO_DATE(' . $headerRow[$key] . ', "%m/%d/%Y")';
                 $i++;
             }
         }
